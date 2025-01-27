@@ -1,0 +1,47 @@
+preliminary documentation for audio_ctrl block
+
+  in:
+    clk
+    rst_n
+    left_data_in[15:0]
+    right_data_in[15:0]
+
+  out:
+    aud_bclk_out	      -- BCLK	may not change even if ref_clk_freg_g changes
+    			              -- sample_rate_g * data_width_g * 2
+                        -- two 16 bit channels at 48 kHz 
+    aud_lrclk_out	      -- WCLK	may not change even if ref_clk_freg_g changes
+    aud_data_out	      -- DATIN
+
+  generic:
+    ref_clk_freq_g, 12 288 000 (Hz)
+    sample_rate_g,      48 000 (Hz)	
+    data_width_g,           16 (bits)
+
+  timing
+    BCLK period		min	75	ns	(insignificant considering freq)
+    BCLK and WCLK	+/-     30	%
+    WCLK setup time 	min	7 	ns	(insignificant considering freq)
+    WCLK hold time	min	2	2	(insignificant considering freq)
+    WCLK must be high for at least the word length number of BCLK periods
+    WCLK must be low for at least the word length number of BCLK periods
+
+  clock counters must be calculated at runtime from ref_clk_freq_g
+  counters only flip the clock signal thus they are divided by 2
+  bclk   = ref_clk_freq_g / ( sample_rate_g * data_width_g * 2 ) / 2
+  lrclk  = ref_clk_freg_g / data_width_g / 2
+  all processes run synchronously, sensitive only to clk and rst_n
+       
+
+  functional description
+    1. input channels are sampled at the start of each sample cycle
+    2. samples are written into a two word register
+    3. at a falling edge of bitclock:
+         -lrclk is set high
+         -data MSB is written to the line, left channel
+    4. after the word is written at a falling edge of bitclock:
+         -lrclk is set low
+ 	 -data MSB is written to the line, right channel
+    5. repeat after LSB
+
+    processes include clock counters and a read/write process
